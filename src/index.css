@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  font-family: "Poppins", system-ui;
+  font-weight: 600;
+  font-style: normal;
+  color: #fff;
+}
+
+*::selection {
+  color: #e34133;
+}
+
+.aw {
+  color: #e34133;
+  accent-color: #e34133;
+}
