@@ -2,13 +2,26 @@ import React, { useState, useEffect } from "react";
 import { jsPDF } from "jspdf";
 import { useDropzone } from "react-dropzone";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
-import { encrypt, decrypt } from "./utils/encryption";
+import { encrypt } from "./utils/encryption";
 
 const App = () => {
   const [images, setImages] = useState([]);
   const [addWatermark, setAddWatermark] = useState(false);
   const [watermarkText, setWatermarkText] = useState("Watermark");
   const [fileName, setFileName] = useState(""); // Default file name
+
+  // Retrieve images from session storage
+  useEffect(() => {
+    const savedImages = sessionStorage.getItem("images");
+    if (savedImages) {
+      setImages(JSON.parse(savedImages));
+    }
+  }, []);
+
+  // Save images to session storage whenever images change
+  useEffect(() => {
+    sessionStorage.setItem("images", JSON.stringify(images));
+  }, [images]);
 
   // Handle file drop
   const onDrop = async (acceptedFiles) => {
@@ -58,21 +71,16 @@ const App = () => {
     setFileName(e.target.value);
   };
 
+  // Disable reordering in drag and drop context
   const onDragEnd = (result) => {
-    if (!result.destination) return;
-
-    const reorderedImages = Array.from(images);
-    const [movedImage] = reorderedImages.splice(result.source.index, 1);
-    reorderedImages.splice(result.destination.index, 0, movedImage);
-
-    setImages(reorderedImages);
+    // Do nothing here to disable reordering
   };
 
   const generatePDF = async () => {
-    // if (images.length === 0) {
-    //   alert("Please upload at least one image.");
-    //   return;
-    // }
+    if (images.length === 0) {
+      alert("Please upload at least one image.");
+      return;
+    }
 
     const pdf = new jsPDF();
     for (let i = 0; i < images.length; i++) {
@@ -93,8 +101,12 @@ const App = () => {
     if (fileName) {
       pdf.save(`${fileName}.pdf`);
     } else {
-      pdf.save(`image.pdf`);
+      pdf.save("images.pdf");
     }
+
+    // Clear images from state and session storage
+    setImages([]);
+    sessionStorage.removeItem("images");
   };
 
   const readImageAsDataURL = (imageFile) => {
@@ -125,11 +137,9 @@ const App = () => {
     };
   }, [images]);
 
-  // return <div className="w-full h-screen bg-red-600">app</div>;
   return (
     <div className="h-fit min-h-screen w-full bg-[#161616] flex flex-col items-center justify-center p-6">
-      <div className=" mb-4  w-2/3 h-fit flex justify-center items-center ">
-        {" "}
+      <div className="mb-4 w-2/3 h-fit flex justify-center items-center">
         <h1 className="sm:text-9xl text-5xl font-bold tracking-tighter text-center">
           <span className="text-[#E34133] w-full">Convert your</span> file
           easily
@@ -138,9 +148,9 @@ const App = () => {
       <div
         {...getRootProps({
           className:
-            "dropzone bg-white p-6 rounded-lg shadow-md w-full  max-w-md border-dashed border-2 border-gray-300",
+            "dropzone bg-white p-6 rounded-lg shadow-md w-full max-w-md border-dashed border-2 border-gray-300",
         })}
-        className="relative flex flex-col items-center justify-center sm:my-4 my-2  border-dashed border rounded-lg sm:p-8 p-5 overflow-hidden"
+        className="relative flex flex-col items-center justify-center sm:my-4 my-2 border-dashed border rounded-lg sm:p-8 p-5 overflow-hidden"
       >
         <input {...getInputProps()} />
         <div className="w-20 h-20 overflow-hidden">
@@ -162,13 +172,13 @@ const App = () => {
             <path d="M9 19l3 3l3 -3" />
           </svg>
         </div>
-        <p className=" mb-5 text-2xl">
+        <p className="mb-5 text-2xl">
           Drag & drop images here, or click to select files
         </p>
       </div>
       <div className="relative sm:flex sm:flex-col sm:items-center sm:justify-center w-full overflow-x-scroll sm:overflow-x-hidden sm my-4 rounded-lg p-8">
         <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId="droppable">
+          <Droppable droppableId="droppable" isDropDisabled>
             {(provided) => (
               <div
                 className="mb-4 flex flex-wrap justify-center gap-10 items-start"
@@ -178,7 +188,7 @@ const App = () => {
                 {images.map((image, index) => (
                   <Draggable
                     key={index}
-                    draggableId={image.file.name}
+                    draggableId={index.toString()} // Use index as string to ensure unique ID
                     index={index}
                   >
                     {(provided) => (
@@ -215,19 +225,10 @@ const App = () => {
           value={fileName}
           onChange={handleFileNameChange}
           placeholder="Enter file name"
-          className=" border-none outline-none placeholder:text-[#262626] text-[#E34133] p-2 rounded mb-4 w-fit text-center"
+          className="border-none outline-none placeholder:text-[#262626] text-[#E34133] p-2 rounded mb-4 w-fit text-center"
         />
       )}
       {images.length > 0 && (
-        // <label className="flex items-center mb-4">
-        //   <input
-        //     type="checkbox"
-        //     checked={addWatermark}
-        //     onChange={handleWatermarkChange}
-        //     className="mr-2 border-none outline-none text-[#E34133] placeholder:text-[#262626] w-fit text-center"
-        //   />
-        //   Add Watermark
-        // </label>
         <div className="flex items-center me-4">
           <input
             id="red-checkbox"
@@ -251,10 +252,9 @@ const App = () => {
           value={watermarkText}
           onChange={handleWatermarkTextChange}
           placeholder="Enter watermark text"
-          className=" border-none outline-none p-2 text-[#E34133] placeholder:text-[#262626] rounded mb-4  w-fit text-center"
+          className="border-none outline-none p-2 text-[#E34133] placeholder:text-[#262626] rounded mb-4 w-fit text-center"
         />
       )}
-
       {images.length > 0 && (
         <button
           onClick={generatePDF}
