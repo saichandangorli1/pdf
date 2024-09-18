@@ -3,13 +3,27 @@ import { jsPDF } from "jspdf";
 import { useDropzone } from "react-dropzone";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { encrypt } from "./utils/encryption";
+import "./App.css";
 
 const App = () => {
   const [images, setImages] = useState([]);
   const [addWatermark, setAddWatermark] = useState(false);
   const [watermarkText, setWatermarkText] = useState("Watermark");
   const [fileName, setFileName] = useState(""); // Default file name
+  const [isMobile, setIsMobile] = useState(false);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768); // Change threshold as needed
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize(); // Call on mount to set initial state
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
   // Retrieve images from session storage
   useEffect(() => {
     const savedImages = sessionStorage.getItem("images");
@@ -122,7 +136,7 @@ const App = () => {
     const pageWidth = pdf.internal.pageSize.width;
     const pageHeight = pdf.internal.pageSize.height;
     pdf.setTextColor(150, 150, 150); // Light gray color
-    pdf.setFontSize(30);
+    pdf.setFontSize(14);
     pdf.text(watermarkText, pageWidth / 2, pageHeight / 2, {
       align: "center",
       angle: 45,
@@ -196,12 +210,12 @@ const App = () => {
                         ref={provided.innerRef}
                         {...provided.draggableProps}
                         {...provided.dragHandleProps}
-                        className="relative mb-2 max-w-64 max-h-64 w-fit h-fit overflow-hidden object-cover rounded border border-gray-300"
+                        className="relative mb-2 max-w-64 max-h-64 w-fit h-fit overflow-hidden object-contain rounded border border-gray-300 "
                       >
                         <img
                           src={image.preview}
                           alt={`Preview ${index}`}
-                          className="w-full rounded object-cover"
+                          className="w-full rounded object-contain"
                         />
                         <button
                           onClick={() => handleRemoveFile(index)}
@@ -225,7 +239,7 @@ const App = () => {
           value={fileName}
           onChange={handleFileNameChange}
           placeholder="Enter file name"
-          className="border-none outline-none placeholder:text-[#262626] text-[#E34133] p-2 rounded mb-4 w-fit text-center"
+          className="border-none outline-none placeholder:text-[#262626] text-[#262626] p-2 rounded mb-4 w-fit text-center"
         />
       )}
       {images.length > 0 && (
@@ -236,7 +250,7 @@ const App = () => {
             checked={addWatermark}
             onChange={handleWatermarkChange}
             value=""
-            className="w-fit text-red-600 aw rounded-lg my-2 border-none outline-none"
+            className="w-fit text-[#262626] aw rounded-lg my-2 border-none outline-none"
           />
           <label
             htmlFor="red-checkbox"
@@ -252,13 +266,13 @@ const App = () => {
           value={watermarkText}
           onChange={handleWatermarkTextChange}
           placeholder="Enter watermark text"
-          className="border-none outline-none p-2 text-[#E34133] placeholder:text-[#262626] rounded mb-4 w-fit text-center"
+          className="border-none outline-none p-2 text-[#262626] placeholder:text-[#262626] rounded mb-4 w-fit text-center"
         />
       )}
       {images.length > 0 && (
         <button
           onClick={generatePDF}
-          className="bg-[#E34133] text-white py-2 px-4 rounded hover:bg-blue-600"
+          className="bg-[#E34133] text-white py-2 px-4 rounded hover:bg-[#b43428]"
         >
           Generate PDF
         </button>
