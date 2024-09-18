@@ -3,7 +3,10 @@ import { jsPDF } from "jspdf";
 import { useDropzone } from "react-dropzone";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { encrypt } from "./utils/encryption";
+import Compressor from "compressorjs";
+
 import "./App.css";
+import Loading from "./Loading";
 
 const App = () => {
   const [images, setImages] = useState([]);
@@ -11,6 +14,9 @@ const App = () => {
   const [watermarkText, setWatermarkText] = useState("Watermark");
   const [fileName, setFileName] = useState(""); // Default file name
   const [isMobile, setIsMobile] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showLoading, setShowLoading] = useState(false); // State for showing loading screen
 
   useEffect(() => {
     const handleResize = () => {
@@ -39,6 +45,12 @@ const App = () => {
 
   // Handle file drop
   const onDrop = async (acceptedFiles) => {
+    const MAX_IMAGES = 10;
+    if (images.length + acceptedFiles.length > MAX_IMAGES) {
+      alert(`You can only upload a maximum of ${MAX_IMAGES} images.`);
+      return;
+    }
+
     const encryptedFiles = await Promise.all(
       acceptedFiles.map(async (file) => {
         const reader = new FileReader();
@@ -57,6 +69,39 @@ const App = () => {
     );
     setImages((prevImages) => [...prevImages, ...encryptedFiles]);
   };
+  // if i dont want to compress the image sizw the use upper function 👆 else 👇
+
+  const MAX_IMAGES = 10;
+  // const onDrop = async (acceptedFiles) => {
+  //   if (images.length + acceptedFiles.length > MAX_IMAGES) {
+  //     alert(`You can only upload a maximum of ${MAX_IMAGES} images.`);
+  //     return;
+  //   }
+
+  //   const compressedFiles = await Promise.all(
+  //     acceptedFiles.map((file) => {
+  //       return new Promise((resolve) => {
+  //         new Compressor(file, {
+  //           quality: 0.6, // Adjust quality as needed
+  //           success(result) {
+  //             const reader = new FileReader();
+  //             reader.onloadend = () => {
+  //               const encryptedData = encrypt(reader.result);
+  //               resolve({
+  //                 file: result,
+  //                 encryptedData,
+  //                 preview: URL.createObjectURL(result),
+  //               });
+  //             };
+  //             reader.readAsDataURL(result);
+  //           },
+  //         });
+  //       });
+  //     })
+  //   );
+
+  //   setImages((prevImages) => [...prevImages, ...compressedFiles]);
+  // };
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
@@ -72,6 +117,20 @@ const App = () => {
       return newImages;
     });
   };
+
+  // if i dont want to compress the image sizw the use upper function 👆 else 👇
+  // const handleRemoveFile = (index) => {
+  //   setImages((prevImages) => {
+  //     const newImages = prevImages.filter((_, i) => i !== index);
+  //     prevImages[index].preview &&
+  //       URL.revokeObjectURL(prevImages[index].preview);
+
+  //     // Clear session storage
+  //     sessionStorage.setItem("images", JSON.stringify(newImages));
+
+  //     return newImages;
+  //   });
+  // };
 
   const handleWatermarkChange = () => {
     setAddWatermark(!addWatermark);
@@ -151,133 +210,171 @@ const App = () => {
     };
   }, [images]);
 
+  useEffect(() => {
+    const loadData = async () => {
+      await new Promise((resolve) => {
+        setTimeout(() => {
+          resolve();
+        }, 1500);
+      });
+      setIsLoading(false);
+    };
+    loadData();
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      setShowLoading(false); // Hide loading screen when back online
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      setShowLoading(true); // Show loading screen when offline
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    // Set initial loading state based on network status
+    setShowLoading(!navigator.onLine);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   return (
-    <div className="h-fit min-h-screen w-full bg-[#161616] flex flex-col items-center justify-center p-6">
-      <div className="mb-4 w-2/3 h-fit flex justify-center items-center">
-        <h1 className="sm:text-9xl text-5xl font-bold tracking-tighter text-center">
-          <span className="text-[#E34133] w-full">Convert your</span> file
-          easily
-        </h1>
-      </div>
-      <div
-        {...getRootProps({
-          className:
-            "dropzone bg-white p-6 rounded-lg shadow-md w-full max-w-md border-dashed border-2 border-gray-300",
-        })}
-        className="relative flex flex-col items-center justify-center sm:my-4 my-2 border-dashed border rounded-lg sm:p-8 p-5 overflow-hidden"
-      >
-        <input {...getInputProps()} />
-        <div className="w-20 h-20 overflow-hidden">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width={80}
-            height={80}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#E34133"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="icon icon-tabler icons-tabler-outline icon-tabler-cloud-download"
+    <>
+      {(isLoading || showLoading) && <Loading />}
+
+      {!isLoading && isOnline && !showLoading && (
+        <div className="h-fit min-h-screen w-full bg-[#161616] flex flex-col items-center justify-center p-6">
+          <div className="mb-4 w-2/3 h-fit flex justify-center items-center">
+            <h1 className="sm:text-9xl text-5xl font-bold tracking-tighter text-center">
+              <span className="text-[#E34133] w-full">Convert your</span> file
+              easily
+            </h1>
+          </div>
+          <div
+            {...getRootProps({
+              className:
+                "dropzone bg-white p-6 rounded-lg shadow-md w-full max-w-md border-dashed border-2 border-gray-300",
+            })}
+            className="relative flex flex-col items-center justify-center sm:my-4 my-2 border-dashed border rounded-lg sm:p-8 p-5 overflow-hidden"
           >
-            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-            <path d="M19 18a3.5 3.5 0 0 0 0 -7h-1a5 4.5 0 0 0 -11 -2a4.6 4.4 0 0 0 -2.1 8.4" />
-            <path d="M12 13l0 9" />
-            <path d="M9 19l3 3l3 -3" />
-          </svg>
-        </div>
-        <p className="mb-5 text-2xl">
-          Drag & drop images here, or click to select files
-        </p>
-      </div>
-      <div className="relative sm:flex sm:flex-col sm:items-center sm:justify-center w-full overflow-x-scroll sm:overflow-x-hidden sm my-4 rounded-lg p-8">
-        <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId="droppable" isDropDisabled>
-            {(provided) => (
-              <div
-                className="mb-4 flex flex-wrap justify-center gap-10 items-start"
-                {...provided.droppableProps}
-                ref={provided.innerRef}
+            <input {...getInputProps()} />
+            <div className="w-20 h-20 overflow-hidden">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width={80}
+                height={80}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#E34133"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="icon icon-tabler icons-tabler-outline icon-tabler-cloud-download"
               >
-                {images.map((image, index) => (
-                  <Draggable
-                    key={index}
-                    draggableId={index.toString()} // Use index as string to ensure unique ID
-                    index={index}
+                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                <path d="M19 18a3.5 3.5 0 0 0 0 -7h-1a5 4.5 0 0 0 -11 -2a4.6 4.4 0 0 0 -2.1 8.4" />
+                <path d="M12 13l0 9" />
+                <path d="M9 19l3 3l3 -3" />
+              </svg>
+            </div>
+            <p className="mb-5 text-2xl">
+              Drag & drop images here, or click to select files
+            </p>
+          </div>
+          <div className="relative sm:flex sm:flex-col sm:items-center sm:justify-center w-full overflow-x-scroll sm:overflow-x-hidden sm my-4 rounded-lg p-8">
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="droppable" isDropDisabled>
+                {(provided) => (
+                  <div
+                    className="mb-4 flex flex-wrap justify-center gap-10 items-start"
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
                   >
-                    {(provided) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        className="relative mb-2 max-w-64 max-h-64 w-fit h-fit overflow-hidden object-contain rounded border border-gray-300 "
+                    {images.map((image, index) => (
+                      <Draggable
+                        key={index}
+                        draggableId={index.toString()} // Use index as string to ensure unique ID
+                        index={index}
                       >
-                        <img
-                          src={image.preview}
-                          alt={`Preview ${index}`}
-                          className="w-full rounded object-contain"
-                        />
-                        <button
-                          onClick={() => handleRemoveFile(index)}
-                          className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
-      </div>
-      {images.length > 0 && (
-        <input
-          type="text"
-          value={fileName}
-          onChange={handleFileNameChange}
-          placeholder="Enter file name"
-          className="border-none outline-none placeholder:text-[#262626] text-[#262626] p-2 rounded mb-4 w-fit text-center"
-        />
-      )}
-      {images.length > 0 && (
-        <div className="flex items-center me-4">
-          <input
-            id="red-checkbox"
-            type="checkbox"
-            checked={addWatermark}
-            onChange={handleWatermarkChange}
-            value=""
-            className="w-fit text-[#262626] aw rounded-lg my-2 border-none outline-none"
-          />
-          <label
-            htmlFor="red-checkbox"
-            className="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-          >
-            Add Watermark
-          </label>
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className="relative mb-2 max-w-64 max-h-64 w-fit h-fit overflow-hidden object-contain rounded border border-gray-300 "
+                          >
+                            <img
+                              src={image.preview}
+                              alt={`Preview ${index}`}
+                              className="w-full rounded object-contain"
+                            />
+                            <button
+                              onClick={() => handleRemoveFile(index)}
+                              className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
+          </div>
+          {images.length > 0 && (
+            <input
+              type="text"
+              value={fileName}
+              onChange={handleFileNameChange}
+              placeholder="Enter file name"
+              className="border-none outline-none placeholder:text-[#262626] text-[#262626] p-2 rounded mb-4 w-fit text-center"
+            />
+          )}
+          {images.length > 0 && (
+            <div className="flex items-center me-4">
+              <input
+                id="red-checkbox"
+                type="checkbox"
+                checked={addWatermark}
+                onChange={handleWatermarkChange}
+                value=""
+                className="w-fit text-[#262626] aw rounded-lg my-2 border-none outline-none"
+              />
+              <label
+                htmlFor="red-checkbox"
+                className="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300"
+              >
+                Add Watermark
+              </label>
+            </div>
+          )}
+          {addWatermark && images.length > 0 && (
+            <input
+              type="text"
+              value={watermarkText}
+              onChange={handleWatermarkTextChange}
+              placeholder="Enter watermark text"
+              className="border-none outline-none p-2 text-[#262626] placeholder:text-[#262626] rounded mb-4 w-fit text-center"
+            />
+          )}
+          {images.length > 0 && (
+            <button
+              onClick={generatePDF}
+              className="bg-[#E34133] text-white py-2 px-4 rounded hover:bg-[#b43428]"
+            >
+              Generate PDF
+            </button>
+          )}
         </div>
       )}
-      {addWatermark && images.length > 0 && (
-        <input
-          type="text"
-          value={watermarkText}
-          onChange={handleWatermarkTextChange}
-          placeholder="Enter watermark text"
-          className="border-none outline-none p-2 text-[#262626] placeholder:text-[#262626] rounded mb-4 w-fit text-center"
-        />
-      )}
-      {images.length > 0 && (
-        <button
-          onClick={generatePDF}
-          className="bg-[#E34133] text-white py-2 px-4 rounded hover:bg-[#b43428]"
-        >
-          Generate PDF
-        </button>
-      )}
-    </div>
+    </>
   );
 };
 
