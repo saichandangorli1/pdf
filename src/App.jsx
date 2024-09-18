@@ -31,25 +31,25 @@ const App = () => {
     };
   }, []);
   // Retrieve images from session storage
-  useEffect(() => {
-    const savedImages = sessionStorage.getItem("images");
-    if (savedImages) {
-      setImages(JSON.parse(savedImages));
-    }
-  }, []);
+  // useEffect(() => {
+  //   const savedImages = sessionStorage.getItem("images");
+  //   if (savedImages) {
+  //     setImages(JSON.parse(savedImages));
+  //   }
+  // }, []);
 
   // Save images to session storage whenever images change
-  useEffect(() => {
-    sessionStorage.setItem("images", JSON.stringify(images));
-  }, [images]);
+  // useEffect(() => {
+  //   sessionStorage.setItem("images", JSON.stringify(images));
+  // }, [images]);
 
   // Handle file drop
   const onDrop = async (acceptedFiles) => {
-    const MAX_IMAGES = 10;
-    if (images.length + acceptedFiles.length > MAX_IMAGES) {
-      alert(`You can only upload a maximum of ${MAX_IMAGES} images.`);
-      return;
-    }
+    // const MAX_IMAGES = 10;
+    // if (images.length + acceptedFiles.length > MAX_IMAGES) {
+    //   alert(`You can only upload a maximum of ${MAX_IMAGES} images.`);
+    //   return;
+    // }
 
     const encryptedFiles = await Promise.all(
       acceptedFiles.map(async (file) => {
@@ -69,39 +69,6 @@ const App = () => {
     );
     setImages((prevImages) => [...prevImages, ...encryptedFiles]);
   };
-  // if i dont want to compress the image sizw the use upper function 👆 else 👇
-
-  const MAX_IMAGES = 10;
-  // const onDrop = async (acceptedFiles) => {
-  //   if (images.length + acceptedFiles.length > MAX_IMAGES) {
-  //     alert(`You can only upload a maximum of ${MAX_IMAGES} images.`);
-  //     return;
-  //   }
-
-  //   const compressedFiles = await Promise.all(
-  //     acceptedFiles.map((file) => {
-  //       return new Promise((resolve) => {
-  //         new Compressor(file, {
-  //           quality: 0.6, // Adjust quality as needed
-  //           success(result) {
-  //             const reader = new FileReader();
-  //             reader.onloadend = () => {
-  //               const encryptedData = encrypt(reader.result);
-  //               resolve({
-  //                 file: result,
-  //                 encryptedData,
-  //                 preview: URL.createObjectURL(result),
-  //               });
-  //             };
-  //             reader.readAsDataURL(result);
-  //           },
-  //         });
-  //       });
-  //     })
-  //   );
-
-  //   setImages((prevImages) => [...prevImages, ...compressedFiles]);
-  // };
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
@@ -117,20 +84,6 @@ const App = () => {
       return newImages;
     });
   };
-
-  // if i dont want to compress the image sizw the use upper function 👆 else 👇
-  // const handleRemoveFile = (index) => {
-  //   setImages((prevImages) => {
-  //     const newImages = prevImages.filter((_, i) => i !== index);
-  //     prevImages[index].preview &&
-  //       URL.revokeObjectURL(prevImages[index].preview);
-
-  //     // Clear session storage
-  //     sessionStorage.setItem("images", JSON.stringify(newImages));
-
-  //     return newImages;
-  //   });
-  // };
 
   const handleWatermarkChange = () => {
     setAddWatermark(!addWatermark);
